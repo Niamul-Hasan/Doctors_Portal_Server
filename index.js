@@ -26,18 +26,25 @@ async function run() {
           const services= await serviceCollection.find(query).toArray();
           res.send(services);
       });
+      //Api for inseting bokking to db from input modal
+      app.post('/booking',async(req,res)=>{
+          const inputData=req.body;
+          const query={Treatment:inputData.Treatment,Date:inputData.Date,Patient:inputData.Patient};
+          const exist=await bookingCollection.findOne(query);
+          if(exist){
+            return res.send({success:false, data:exist});
+          }
+          const booking= await bookingCollection.insertOne(inputData);
+          return res.send({success:true,booking});
+      });
+      
+      //Api for loading all booking items
       app.get('/booking',async(req,res)=>{
           const query={};
           const bookings= await bookingCollection.find(query).toArray();
           res.send(bookings);
       });
 
-      //Api for inseting bokking to db from input modal
-      app.post('/service',async(req,res)=>{
-          const query=req.body;
-          const booking= await bookingCollection.insertOne(query);
-          res.send(booking);
-      })
     } 
     finally {
 
