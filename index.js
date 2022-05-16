@@ -4,6 +4,8 @@ const cors=require('cors')
 const port = process.env.PORT||5000;
 require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const jwt = require('jsonwebtoken');
+
 //middleware
 app.use(cors());
 app.use(express.json());
@@ -38,9 +40,13 @@ async function run() {
           return res.send({success:true,booking});
       });
       
-      //Api for loading all booking items
+      //Api for loading all booking items filtering by email to dashboard
       app.get('/booking',async(req,res)=>{
-          const query={};
+        const getEmail=req.query.email;
+        // console.log("From Inside Api",getEmail);
+          const query={Email:getEmail};
+          // console.log('From Query',query);
+         
           const bookings= await bookingCollection.find(query).toArray();
           res.send(bookings);
       });
