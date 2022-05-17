@@ -21,6 +21,7 @@ async function run() {
 
       const serviceCollection=client.db("doctors_portal").collection("service");
       const bookingCollection=client.db("doctors_portal").collection("booking");
+      const userCollection=client.db("doctors_portal").collection("user");
 
       //Api for loading data in Appointment Page
       app.get('/service',async(req,res)=>{
@@ -50,6 +51,19 @@ async function run() {
           const bookings= await bookingCollection.find(query).toArray();
           res.send(bookings);
       });
+
+      //Api for upsert data into user db
+      app.put("/user/:email",async(req,res)=>{
+        const email=req.params.email;
+        const filter={email:email};
+        const options={upsert:true};
+        const user=req.body;
+        const updateDoc = {
+          $set: user
+        };
+        const result= await userCollection.updateOne(filter,updateDoc,options);
+        res.send(result);
+      })
 
     } 
     finally {
