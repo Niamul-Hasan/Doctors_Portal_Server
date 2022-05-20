@@ -3,14 +3,16 @@ const app = express();
 const cors=require('cors')
 const port = process.env.PORT||5000;
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
+const stripe= require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 //middleware
 app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.v5rrv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
@@ -62,7 +64,8 @@ async function run() {
       app.get('/booking',verifyJwt,async(req,res)=>{
         const getEmail=req.query.email;
         // console.log("From Inside Api",getEmail);
-        const decodedEmail=req.decoded.email;
+ 
+        const decodedEmail=req?.decoded.email;
         if(decodedEmail===getEmail){
           const query={Email:getEmail};
           const bookings= await bookingCollection.find(query).toArray();
@@ -72,6 +75,13 @@ async function run() {
           return res.status(403).send({message:'Forbidden User'})
         }
           
+      });
+
+      app.get('/booking/:id',verifyJwt,verifyJwt,async(req,res)=>{
+        const id=req.params.id;
+        const query={_id:ObjectId(id)};
+        const bookingInfo=await bookingCollection.findOne(query);
+        res.send(bookingInfo);
       });
 
       //Api for all users
@@ -91,7 +101,8 @@ async function run() {
       //Api for making an user to admin
       app.put("/user/admin/:email",verifyJwt,async(req,res)=>{
         const email=req.params.email;
-        const initiator=req.decoded.email;
+        
+        const initiator=req?.decoded.email;
       const initiatorAccount=await userCollection.findOne({email:initiator});
         if(initiatorAccount.role==="Admin"){
           const filter={email:email};
@@ -121,6 +132,19 @@ async function run() {
         const result= await userCollection.updateOne(filter,updateDoc,options);
         const token = jwt.sign({email:email},process.env.ACCESS_TOKEN_SECRET,{ expiresIn: '7d' });
         res.send({result,token});
+      });
+
+      //api for stripe payment 
+      app.post("/create-payment-intent", async (req, res)=>{
+        const service=req.body;
+        const price=service.price;
+        const amount=price*100;
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount:amount,
+          currency:'usd',
+          payment_method_types: ["card"],
+        });
+        res.send({clientSecret: paymentIntent.client_secret});
       })
 
     } 
