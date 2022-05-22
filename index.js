@@ -40,6 +40,7 @@ async function run() {
       const serviceCollection=client.db("doctors_portal").collection("service");
       const bookingCollection=client.db("doctors_portal").collection("booking");
       const userCollection=client.db("doctors_portal").collection("user");
+      const paymentCollection=client.db("doctors_portal").collection("payment");
 
       //Api for loading data in Appointment Page
       app.get('/service',async(req,res)=>{
@@ -77,11 +78,27 @@ async function run() {
           
       });
 
-      app.get('/booking/:id',verifyJwt,verifyJwt,async(req,res)=>{
+      app.get('/booking/:id',verifyJwt,async(req,res)=>{
         const id=req.params.id;
         const query={_id:ObjectId(id)};
         const bookingInfo=await bookingCollection.findOne(query);
         res.send(bookingInfo);
+      });
+      // Api for payment collection and confirm booking payment 
+      app.patch('/booking/:id',verifyJwt,async(req,res)=>{
+        const id=req.params.id;
+        const filter={_id:ObjectId(id)};
+        const paymentinfo=req.body;
+        const updatedDoc={
+          $set:{
+            paid:true,
+            transactionId:paymentinfo.transactionId,
+          }
+        }
+
+        const bookingUpdate=await bookingCollection.updateOne(filter,updatedDoc);
+        const payment=await paymentCollection.insertOne(paymentinfo);
+        res.send({update:bookingUpdate,Payment:payment});
       });
 
       //Api for all users
